@@ -9,11 +9,13 @@ from sklearn import datasets, linear_model
 line_num = 0
 gene_expression = []
 genes = []
+patients = []
 
 # open gene expression file and read in genes, and gene expression data
 with open("BRCA.rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.data.txt") as tsv:
     for line in csv.reader(tsv, dialect="excel-tab"):
         if line_num == 0:
+            patients = line[1:]
             line_num += 1
         elif line_num == 1:
             line_num += 1
@@ -50,8 +52,34 @@ for patient_info in gene_expression:
 num_clusters_to_try = [2, 3, 4, 5, 6, 7] #unsure?
 # try out a bunch of different cluster sizes?
 for num_clusters in num_clusters_to_try:
-    pass
-    #kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(max_columns)
-    # TODO KATY: collect stats on these clusters, look at kmeans._labels, etc
+    #pass
+    kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(max_columns)
+    # TODO KATY: collect stats on these clusters, look at kmeans.labels_, etc
 
+clinical_patients = []
+days_to_death = []
+line_num = 0
+with open("BRCA.clin.merged.picked.txt") as tsv:
+    for line in csv.reader(tsv, dialect="excel-tab"):
+        if line_num == 0:
+            clinical_patients = line[1:]
+            line_num += 1
+        elif line_num == 1:
+            line_num += 1
+        else:
+            if line[0] == "days_to_death":
+                days_to_death = line[1:]
 
+patients_to_death = {clinical_patients[i]: float(days_to_death[i]) for i in range(len(days_to_death)) if days_to_death[i] != "NA"}
+print patients_to_death
+num_clusters_test = 3
+kmean_test = KMeans(n_clusters=num_clusters_test, random_state=0).fit(max_columns)
+patients_by_cluster = {0: [], 1: [], 2: []}
+# add patients with death days to patients_by_cluster
+for i in range(len(kmean.labels_)):
+    patient_cluster = kmeans.labels_[i]
+    patient_id = patients[i]
+    if patient_id in patients_to_death.keys():
+        patients_by_cluster[patient_cluster] = patients_by_cluster[patient_cluster] + [patient_id]
+
+# do mean/median/st dev/anova (if num cluster > 2), else do t_test (if 2)
